@@ -2,7 +2,6 @@
   "name": "job-portfolio-app",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://sudarshannaik67.github.io/My-portfolio",
   "dependencies": {
     "framer-motion": "^12.43.0",
     "react": "^19.1.0",
