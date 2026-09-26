@@ -15,3 +15,5 @@ Each project has `repoKeys`: fragments of the repo name used to find its GitHub 
 ## Deploy
 Pushing to `main` builds and publishes to GitHub Pages via `.github/workflows/deploy.yml`.
 In the repo, open Settings, then Pages, and set Source to "GitHub Actions" once.
+
+live link: https://sudarshan-g-naik.vercel.app/
