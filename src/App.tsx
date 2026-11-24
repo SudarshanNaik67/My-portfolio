@@ -1,7 +1,13 @@
 import { MotionConfig } from "framer-motion";
 import { useState } from "react";
+import About from "./components/About";
+import Background from "./components/Background";
+import Certifications from "./components/Certifications";
+import Contact from "./components/Contact";
+import Experience from "./components/Experience";
 import Hero from "./components/Hero";
 import Projects from "./components/Projects";
+import Resume from "./components/Resume";
 import Skills from "./components/Skills";
 import { profile } from "./data/profile";
 
@@ -10,37 +16,30 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="user">
+      <Background />
       <nav className="nav">
-        <div className="wrap nav-in">
-          <a href="#top" className="brand">{profile.name}</a>
-          <div className="links">
-            <a href="#work">Projects</a>
-            <a href="#skills">Skills</a>
-            <a href="#about">About</a>
-            <a href="#contact">Contact</a>
-          </div>
+        <a href="#top" className="brand mono">{profile.name}</a>
+        <div className="links">
+          <a href="#about">About</a>
+          <a href="#skills">Skills</a>
+          <a href="#work">Projects</a>
+          <a href="#resume">Resume</a>
+          <a href="#contact">Contact</a>
         </div>
       </nav>
       <main id="top">
         <Hero />
-        <Projects activeSkill={skill} onClear={() => setSkill(null)} />
-        <Skills active={skill} onSelect={setSkill} />
-        <section id="about" className="section wrap narrow">
-          <h2>About</h2>
-          <p className="about">{profile.about}</p>
-        </section>
-      </main>
-      <footer id="contact" className="footer">
         <div className="wrap">
-          <h2>Contact</h2>
-          <div className="actions">
-            <a className="btn primary" href={`mailto:${profile.email}`}>{profile.email}</a>
-            <a className="btn" href={profile.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a>
-            <a className="btn" href={`https://github.com/${profile.github}`} target="_blank" rel="noopener noreferrer">GitHub</a>
-          </div>
-          <p className="copy">© {new Date().getFullYear()} {profile.name}</p>
+          <About />
+          <Skills active={skill} onSelect={setSkill} />
+          <Projects activeSkill={skill} onClear={() => setSkill(null)} />
+          <Certifications />
+          <Experience />
+          <Resume />
+          <Contact />
         </div>
-      </footer>
+      </main>
+      <footer>Built by {profile.name}, Chhatrapati Sambhajinagar, Maharashtra, India</footer>
     </MotionConfig>
   );
 }

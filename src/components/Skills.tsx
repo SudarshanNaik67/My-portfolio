@@ -1,5 +1,5 @@
-import { motion } from "framer-motion";
 import { projects, skillGroups } from "../data/profile";
+import Section from "./Section";
 
 interface Props {
   active: string | null;
@@ -8,38 +8,36 @@ interface Props {
 
 export default function Skills({ active, onSelect }: Props) {
   return (
-    <section id="skills" className="section wrap">
-      <h2>Skills</h2>
-      <p className="lede">Select a skill to filter the projects that use it.</p>
-      <div className="skill-groups">
+    <Section id="skills" kicker="SKILLS" title="Toolkit">
+      <p className="note">Select a skill to filter the projects that use it.</p>
+      <div className="skillgrid">
         {skillGroups.map((group) => (
-          <div key={group.label} className="skill-group">
-            <h3>{group.label}</h3>
-            <div className="chips">
+          <div key={group.label} className="skillcat">
+            <h3>{group.label.toUpperCase()}</h3>
+            <div className="pills">
               {group.skills.map((skill) => {
                 const count = projects.filter((p) => p.tech.includes(skill)).length;
                 const on = active === skill;
                 return (
-                  <motion.button
+                  <button
                     key={skill}
                     type="button"
-                    className={`chip${on ? " on" : ""}`}
+                    className={`pill${on ? " active" : ""}`}
                     aria-pressed={on}
-                    whileTap={{ scale: 0.94 }}
                     onClick={() => {
                       onSelect(on ? null : skill);
                       if (!on) document.getElementById("work")?.scrollIntoView({ behavior: "smooth" });
                     }}
                   >
                     {skill}
-                    {count > 0 && <span className="count">{count}</span>}
-                  </motion.button>
+                    {count > 0 ? ` (${count})` : ""}
+                  </button>
                 );
               })}
             </div>
           </div>
         ))}
       </div>
-    </section>
+    </Section>
   );
 }
