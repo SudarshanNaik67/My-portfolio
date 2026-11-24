@@ -1,54 +1,115 @@
 import { useEffect, useState } from "react";
-import { Repo } from "../types";
+import { ContributedRepo, Repo } from "../types";
 
-type State =
-  | { status: "loading"; repos: Repo[] }
-  | { status: "ready"; repos: Repo[] }
-  | { status: "error"; repos: Repo[]; message: string };
+interface State {
+  status: "loading" | "ready" | "error";
+  repos: Repo[];
+  contributed: ContributedRepo[];
+  message?: string;
+}
+
+interface CommitItem {
+  repository: { full_name: string; name: string; html_url: string; description: string | null; private: boolean };
+  commit: { author: { date: string } };
+}
 
 const TTL_MS = 10 * 60 * 1000;
+const API = "https://api.github.com";
+const headers = { Accept: "application/vnd.github+json" };
 
-/** Fetches a user's public, non-fork repos from the GitHub REST API (cached per tab for 10 minutes). */
+function readCache<T>(key: string): T | null {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    const c = JSON.parse(raw) as { t: number; data: T };
+    return Date.now() - c.t < TTL_MS ? c.data : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache<T>(key: string, data: T): void {
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ t: Date.now(), data }));
+  } catch {
+    /* storage unavailable: skip caching */
+  }
+}
+
+async function getJson<T>(url: string, signal: AbortSignal): Promise<T> {
+  const res = await fetch(url, { signal, headers });
+  if (!res.ok) {
+    throw new Error(res.status === 403 ? "GitHub rate limit reached" : `GitHub returned ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+function groupCommits(items: CommitItem[]): ContributedRepo[] {
+  const map = new Map<string, ContributedRepo>();
+  for (const { repository: r, commit } of items) {
+    if (r.private) continue;
+    const date = commit.author.date;
+    const prev = map.get(r.full_name);
+    if (prev) {
+      prev.commits += 1;
+      if (date > prev.lastCommit) prev.lastCommit = date;
+    } else {
+      map.set(r.full_name, {
+        fullName: r.full_name,
+        name: r.name,
+        html_url: r.html_url,
+        description: r.description,
+        commits: 1,
+        lastCommit: date,
+      });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => (a.lastCommit < b.lastCommit ? 1 : -1));
+}
+
+/**
+ * Live GitHub data, fetched in the visitor's browser (cached per tab for 10 minutes):
+ * your public non-fork repos, plus public repos you have commits in but do not own.
+ */
 export function useGithubRepos(username: string): State {
-  const [state, setState] = useState<State>({ status: "loading", repos: [] });
+  const [state, setState] = useState<State>({ status: "loading", repos: [], contributed: [] });
 
   useEffect(() => {
-    const cacheKey = `gh-repos:${username}`;
-    try {
-      const raw = sessionStorage.getItem(cacheKey);
-      if (raw) {
-        const cached = JSON.parse(raw) as { t: number; repos: Repo[] };
-        if (Date.now() - cached.t < TTL_MS) {
-          setState({ status: "ready", repos: cached.repos });
-          return;
-        }
-      }
-    } catch {
-      /* storage unavailable: fetch normally */
+    const ownKey = `gh-repos:${username}`;
+    const conKey = `gh-contrib:${username}`;
+    const cachedOwn = readCache<Repo[]>(ownKey);
+    const cachedCon = readCache<ContributedRepo[]>(conKey);
+    if (cachedOwn && cachedCon) {
+      setState({ status: "ready", repos: cachedOwn, contributed: cachedCon });
+      return;
     }
 
     const controller = new AbortController();
-    fetch(`https://api.github.com/users/${username}/repos?per_page=100&sort=pushed`, {
-      signal: controller.signal,
-      headers: { Accept: "application/vnd.github+json" },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(res.status === 403 ? "GitHub rate limit reached" : `GitHub returned ${res.status}`);
-        }
-        return res.json() as Promise<Repo[]>;
-      })
-      .then((all) => {
-        const repos = all.filter((r) => !r.fork);
-        try {
-          sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), repos }));
-        } catch {
-          /* ignore */
-        }
-        setState({ status: "ready", repos });
-      })
+    const own: Promise<Repo[]> = cachedOwn
+      ? Promise.resolve(cachedOwn)
+      : getJson<Repo[]>(`${API}/users/${username}/repos?per_page=100&sort=pushed`, controller.signal).then((all) => {
+          const repos = all.filter((r) => !r.fork);
+          writeCache(ownKey, repos);
+          return repos;
+        });
+    const q = encodeURIComponent(`author:${username} -user:${username}`);
+    const con: Promise<ContributedRepo[]> = cachedCon
+      ? Promise.resolve(cachedCon)
+      : getJson<{ items: CommitItem[] }>(`${API}/search/commits?q=${q}&per_page=100&sort=author-date&order=desc`, controller.signal)
+          .then((d) => {
+            const list = groupCommits(d.items);
+            writeCache(conKey, list);
+            return list;
+          })
+          .catch((e: Error) => {
+            if (e.name === "AbortError") throw e;
+            return [] as ContributedRepo[];
+          });
+
+    Promise.all([own, con])
+      .then(([repos, contributed]) => setState({ status: "ready", repos, contributed }))
       .catch((err: Error) => {
-        if (err.name !== "AbortError") setState({ status: "error", repos: [], message: err.message });
+        if (err.name !== "AbortError") setState({ status: "error", repos: [], contributed: [], message: err.message });
       });
 
     return () => controller.abort();

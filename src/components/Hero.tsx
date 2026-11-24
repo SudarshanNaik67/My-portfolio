@@ -46,6 +46,7 @@ export default function Hero() {
               <a className="btn primary" href="#work">See my projects</a>
               <a className="btn" href={`mailto:${profile.email}`}>Email me</a>
               <a className="btn" href={profile.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a>
+              <a className="btn" href={profile.resume} target="_blank" rel="noopener noreferrer">Resume</a>
             </div>
           </motion.div>
         </div>
