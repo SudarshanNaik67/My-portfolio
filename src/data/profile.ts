@@ -92,7 +92,7 @@ export const contributions: Project[] = [
   {
     title: "KHAAD Setu",
     blurb:
-      "Flutter app for Indian farmers: soil health scan, fertilizer suggestions, weather and mandi prices, scheme matching and an offline village-center mode. Owned by pvtltdpratik; my commits cover screen and app-setup updates, platform files and README fixes.",
+      "Flutter app for Indian farmers: soil health scan, fertilizer suggestions, weather and mandi prices, scheme matching and an offline village-center mode. Owned by Sudarshan And pvtltdpratik; my commits cover screen and app-setup updates, platform files and README fixes.",
     tech: ["Flutter", "Dart"],
     repoKeys: ["pvtltdpratik/khaadsetu"],
   },
